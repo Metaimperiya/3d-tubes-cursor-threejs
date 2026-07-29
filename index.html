@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>3D Tubes Cursor - Three.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+      background: #000;
+      cursor: none;
+      touch-action: none;
+    }
+
+    #canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Title */
+    .title {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .title h1 {
+      color: #ffffff;
+      font-size: 32px;
+      font-weight: 800;
+      margin: 0;
+      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+      letter-spacing: -0.5px;
+    }
+
+    .title p {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      margin: 4px 0 0 0;
+    }
+
+    .color-preview {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .color-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Intensity Control */
+    .intensity-control {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 20px 24px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      min-width: 220px;
+    }
+
+    .intensity-label {
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .intensity-value {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s;
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Presets */
+    .presets {
+      position: absolute;
+      left: 30px;
+      bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .preset-label {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .preset-btn {
+      padding: 10px 18px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(4px);
+    }
+
+    /* Info */
+    .info {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 15px;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 16px 28px;
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      .title h1 { font-size: 24px; }
+      .title p { font-size: 12px; }
+      .intensity-control { min-width: 160px; padding: 16px 18px; right: 16px; top: 16px; }
+      .intensity-label { font-size: 12px; }
+      .presets { left: 16px; bottom: 100px; }
+      .preset-btn { padding: 8px 14px; font-size: 12px; }
+      .info { font-size: 12px; padding: 12px 20px; bottom: 24px; }
+    }
+
+    @media (max-width: 480px) {
+      .title { top: 16px; left: 16px; }
+      .title h1 { font-size: 20px; }
+      .intensity-control { min-width: 130px; padding: 12px 14px; }
+      .intensity-label { font-size: 10px; }
+      .slider { height: 4px; }
+      .slider::-webkit-slider-thumb { width: 16px; height: 16px; }
+      .preset-btn { padding: 6px 10px; font-size: 10px; }
+      .info { font-size: 10px; padding: 10px 16px; bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="title">
+  <h1>🌀 Tubes Cursor</h1>
+  <p>Move your mouse • Click to randomize</p>
+  <div class="color-preview" id="colorPreview"></div>
+</div>
+
+<div class="intensity-control">
+  <div class="intensity-label">
+    <span>Light Intensity</span>
+    <span class="intensity-value" id="intensityValue">200</span>
+  </div>
+  <input class="slider" id="intensitySlider" type="range" min="50" max="500" value="200" step="10">
+</div>
+
+<div class="presets">
+  <span class="preset-label">Color Presets</span>
+  <button class="preset-btn" data-preset="neon">✨ Neon Dreams</button>
+  <button class="preset-btn" data-preset="ocean">🌊 Ocean Depths</button>
+  <button class="preset-btn" data-preset="sunset">🌅 Sunset Vibes</button>
+  <button class="preset-btn" data-preset="forest">🌿 Forest Magic</button>
+  <button class="preset-btn" data-preset="fire">🔥 Fire & Ice</button>
+</div>
+
+<div class="info">💡 Click anywhere or use the buttons to change colors</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "threejs-components": "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js"
+    }
+  }
+</script>
+
+<script type="module">
+  import TubesCursor from "threejs-components";
+
+  const canvas = document.getElementById("canvas");
+  const colorPreview = document.getElementById("colorPreview");
+
+  let app;
+  let initialized = false;
+
+  function initApp() {
+    if (initialized) return;
+    initialized = true;
+
+    app = TubesCursor(canvas, {
+      tubes: {
+        colors: ["#f967fb", "#53bc28", "#6958d5"],
+        lights: {
+          intensity: 200,
+          colors: ["#83f36e", "#fe8a2e", "#ff008a", "#60aed5"]
+        }
+      }
+    });
+
+    setupControls();
+  }
+
+  // Init on first mouse move
+  document.addEventListener("mousemove", initApp, { once: true });
+  document.addEventListener("touchstart", initApp, { once: true });
+
+  // Fallback
+  setTimeout(initApp, 200);
+
+  function setupControls() {
+    if (!app) return;
+
+    const presets = {
+      neon: {
+        tubes: ["#ff006e", "#8338ec", "#3a86ff"],
+        lights: ["#fb5607", "#ffbe0b", "#ff006e", "#8338ec"]
+      },
+      ocean: {
+        tubes: ["#06ffa5", "#4d9de0", "#7209b7"],
+        lights: ["#06ffa5", "#00b4d8", "#0077b6", "#7209b7"]
+      },
+      sunset: {
+        tubes: ["#ff6d00", "#ff9e00", "#ffd60a"],
+        lights: ["#ff006e", "#ff6d00", "#ff9e00", "#ffd60a"]
+      },
+      forest: {
+        tubes: ["#2d6a4f", "#40916c", "#95d5b2"],
+        lights: ["#1b4332", "#2d6a4f", "#52b788", "#95d5b2"]
+      },
+      fire: {
+        tubes: ["#ff0a54", "#ff477e", "#0affed"],
+        lights: ["#ff0a54", "#ff5400", "#ff006e", "#0affed"]
+      }
+    };
+
+    function randomColors(count) {
+      return new Array(count).fill(0).map(
+        () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")
+      );
+    }
+
+    function updatePreview(colors) {
+      colorPreview.innerHTML = colors
+        .map((color) => `<div class="color-dot" style="background: ${color}"></div>`)
+        .join("");
+    }
+
+    // Init preview
+    updatePreview(["#f967fb", "#53bc28", "#6958d5"]);
+
+    // Intensity slider
+    const intensitySlider = document.getElementById("intensitySlider");
+    const intensityValue = document.getElementById("intensityValue");
+
+    intensitySlider.addEventListener("input", (e) => {
+      if (!app) return;
+      const value = parseInt(e.target.value);
+      intensityValue.textContent = value;
+      app.tubes.setLightsIntensity(value);
+    });
+
+    // Click to randomize
+    document.body.addEventListener("click", (e) => {
+      if (!app) return;
+      if (e.target.tagName === "BUTTON") return;
+
+      const colors = randomColors(3);
+      const lightsColors = randomColors(4);
+      app.tubes.setColors(colors);
+      app.tubes.setLightsColors(lightsColors);
+      updatePreview(colors);
+    });
+
+    // Preset buttons
+    document.querySelectorAll(".preset-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (!app) return;
+        const preset = presets[btn.dataset.preset];
+        if (!preset) return;
+        app.tubes.setColors(preset.tubes);
+        app.tubes.setLightsColors(preset.lights);
+        updatePreview(preset.tubes);
+      });
+    });
+
+    // Touch support for mobile
+    document.addEventListener("touchstart", (e) => {
+      if (!app) return;
+      if (e.target.tagName === "BUTTON") return;
+      const colors = randomColors(3);
+      const lightsColors = randomColors(4);
+      app.tubes.setColors(colors);
+      app.tubes.setLightsColors(lightsColors);
+      updatePreview(colors);
+    }, { passive: true });
+  }
+
+  console.log('🌀 Tubes Cursor | Move mouse to see the effect');
+</script>
+
+</body>
+</html>
